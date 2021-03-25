@@ -79,6 +79,7 @@ def main():
         _, _, resume_bucket_name, resume_bucket_local_path = cfg.resume.split('/', 3)
         resume_bucket = s3.Bucket(resume_bucket_name)
         checkpoints = list(resume_bucket.objects.filter(Prefix=resume_bucket_local_path))
+        checkpoints = [c for c in checkpoints if c.key.endswith(".ckpt")]
         if len(checkpoints) != 1:
             print("Your s3 path specification did not match a single checkpoint. Please be more specific:")
             for c in checkpoints:
