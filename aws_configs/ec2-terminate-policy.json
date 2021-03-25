@@ -1,0 +1,21 @@
+{
+   "Version": "2012-10-17",
+   "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeImages",
+        "ec2:DescribeKeyPairs",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:TerminateInstances",
+        "ec2:DescribeSpotInstanceRequests",
+        "ec2:CancelSpotFleetRequests",
+        "ec2:DescribeSpotFleetRequests",
+        "ec2:CancelSpotInstanceRequests"
+      ],
+      "Resource": "*"
+    }
+   ]
+}

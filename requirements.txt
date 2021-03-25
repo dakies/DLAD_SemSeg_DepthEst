@@ -1,0 +1,11 @@
+# Requirements fit with Deep Learning AMI pytorch_p36 environment to avoid unnecessary up/downgrades
+boto3==1.17.15
+matplotlib==3.3.4
+numpy==1.19.5
+Pillow==8.1.0
+pytorch-lightning==1.2.2
+wandb==0.10.22
+test-tube==0.7.3
+torch==1.4.0
+torchvision==0.5.0
+tqdm==4.57.0

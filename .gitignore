@@ -1,0 +1,9 @@
+.DS_Store
+.idea
+.ipynb*
+__pycache__
+wandb
+*.log
+*.key
+aws_configs/default_s3_bucket.txt
+aws_configs/group_id.txt
