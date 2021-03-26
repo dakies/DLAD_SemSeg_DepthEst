@@ -8,7 +8,7 @@ export WANDB_API_KEY=$(cat "aws_configs/wandb.key")
 # Download dataset (do not change this)
 if [ ! -d "/home/ubuntu/miniscapes" ]; then
   echo "Download miniscapes"
-  aws s3 cp s3://dlad-miniscapes/miniscapes.zip /home/ubuntu/
+  aws s3 cp s3://dlad-miniscapes-2021/miniscapes.zip /home/ubuntu/
   echo "Extract miniscapes"
   unzip /home/ubuntu/miniscapes.zip -d /home/ubuntu/ | awk 'BEGIN {ORS=" "} {if(NR%1000==0)print "."}'
   rm /home/ubuntu/miniscapes.zip
