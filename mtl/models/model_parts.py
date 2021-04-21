@@ -187,7 +187,7 @@ class ASPP(torch.nn.Module):
         self.avg_pool.kernel_size = x.shape[2:]
         global_feat = self.avg_pool(x)
         global_feat = self.conv1x1_global(global_feat)
-        global_feat = F.interpolate(global_feat, size=x.size[2:], mode='bilinear', align_corners=True)
+        global_feat = F.interpolate(global_feat, size=x.shape[2:], mode='bilinear', align_corners=True)
 
         feature_cat = torch.cat([conv1x1, conv3x3_1, conv3x3_2, conv3x3_3, global_feat], dim=1)
         conv_cat = self.conv_final(feature_cat)
