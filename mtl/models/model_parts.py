@@ -123,7 +123,17 @@ class DecoderDeeplabV3p(torch.nn.Module):
         super(DecoderDeeplabV3p, self).__init__()
 
         # TODO: Implement a proper decoder with skip connections instead of the following
-        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=1, stride=1)
+        n_bottleneck = 48
+        self.features_to_predictions = torch.nn.Sequential(
+            torch.nn.Conv2d(skip_4x_ch + n_bottleneck, num_out_ch, kernel_size=3),
+            torch.nn.BatchNorm2d(num_out_ch),
+            torch.nn.ReLU()
+        )
+        self.conv1x1_bottleneck = torch.nn.Sequential(
+            torch.nn.Conv2d(bottleneck_ch, n_bottleneck, kernel_size=1),
+            torch.nn.BatchNorm2d(n_bottleneck),
+            torch.nn.ReLU()
+        )
 
     def forward(self, features_bottleneck, features_skip_4x):
         """
@@ -135,10 +145,13 @@ class DecoderDeeplabV3p(torch.nn.Module):
         # TODO: Implement a proper decoder with skip connections instead of the following; keep returned
         #       tensors in the same order and of the same shape.
         features_4x = F.interpolate(
-            features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
+            features_skip_4x, size=features_bottleneck.shape[2:], mode='bilinear', align_corners=True
         )
-        predictions_4x = self.features_to_predictions(features_4x)
-        return predictions_4x, features_4x
+        features_bottleneck_reduced = self.conv1x1_bottleneck(features_bottleneck)
+        feature_cat = torch.cat([features_bottleneck_reduced, features_4x], dim=1)
+        predictions_4x = self.features_to_predictions(feature_cat)
+        predicitions = F.interpolate(predictions_4x, scale_factor=4)
+        return predicitions, predictions_4x
 
 
 class ASPPpart(torch.nn.Sequential):
@@ -154,12 +167,32 @@ class ASPP(torch.nn.Module):
     def __init__(self, in_channels, out_channels, rates=(3, 6, 9)):
         super().__init__()
         # TODO: Implement ASPP properly instead of the following
-        self.conv_out = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.conv_1 = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.conv_2 = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[0], dilation=rates[0])
+        self.conv_3 = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[1], dilation=rates[1])
+        self.conv_4 = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[2], dilation=rates[2])
+
+        self.avg_pool = torch.nn.AvgPool2d((1, 1))
+        self.conv1x1_global = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=1, dilation=1)
+
+        self.conv_final = ASPPpart(out_channels * 5, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
 
     def forward(self, x):
         # TODO: Implement ASPP properly instead of the following
-        out = self.conv_out(x)
-        return out
+        conv1x1 = self.conv_1(x)
+        conv3x3_1 = self.conv_2(x)
+        conv3x3_2 = self.conv_3(x)
+        conv3x3_3 = self.conv_4(x)
+
+        self.avg_pool.kernel_size = x.shape[2:]
+        global_feat = self.avg_pool(x)
+        global_feat = self.conv1x1_global(global_feat)
+        global_feat = F.interpolate(global_feat, size=x.size[2:], mode='bilinear', align_corners=True)
+
+        feature_cat = torch.cat([conv1x1, conv3x3_1, conv3x3_2, conv3x3_3, global_feat], dim=1)
+        conv_cat = self.conv_final(feature_cat)
+
+        return conv_cat
 
 
 class SelfAttention(torch.nn.Module):
@@ -180,6 +213,7 @@ class SqueezeAndExcitation(torch.nn.Module):
     """
     Squeeze and excitation module as explained in https://arxiv.org/pdf/1709.01507.pdf
     """
+
     def __init__(self, channels, r=16):
         super(SqueezeAndExcitation, self).__init__()
         self.transform = torch.nn.Sequential(

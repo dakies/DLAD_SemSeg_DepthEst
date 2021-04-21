@@ -24,11 +24,11 @@ cd /home/ubuntu/code/
 python -m mtl.scripts.train \
   --log_dir /home/ubuntu/results/ \
   --dataset_root /home/ubuntu/miniscapes/ \
-  --name Default \
-  --optimizer sgd \
-  --optimizer_lr 0.01
-  # ... you can pass further arguments as specified in utils/config.py
-
+  --name encoder_decoder \
+  --optimizer adam \
+  --optimizer_lr 0.00001 \
+  --batch_size 8 \
+  --num_epochs 32
 # If you want to run multiple experiments after each other, just call the training script multiple times.
 # Don't forget to check if the AWS timeout in aws_start_instances.py is still sufficient.
 #  python -m mtl.scripts.train \
