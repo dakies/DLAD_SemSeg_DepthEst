@@ -150,7 +150,7 @@ class DecoderDeeplabV3p(torch.nn.Module):
         features_skip_4x_reduced = self.conv1x1_skip(features_skip_4x)
         feature_cat = torch.cat([features_bottleneck_upscaled, features_skip_4x_reduced], dim=1)
         predictions_4x = self.features_to_predictions(feature_cat)
-        predictions = F.interpolate(predictions_4x, scale_factor=4)
+        predictions = F.interpolate(predictions_4x, scale_factor=4, mode='bilinear', align_corners=True)
         return predictions, predictions_4x
 
 
