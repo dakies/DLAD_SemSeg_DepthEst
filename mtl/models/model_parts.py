@@ -124,11 +124,8 @@ class DecoderDeeplabV3p(torch.nn.Module):
 
         # TODO: Implement a proper decoder with skip connections instead of the following
         n_skip = 48
-        self.features_to_predictions = torch.nn.Sequential(
-            torch.nn.Conv2d(bottleneck_ch + n_skip, num_out_ch, kernel_size=3),
-            torch.nn.BatchNorm2d(num_out_ch),
-            torch.nn.ReLU()
-        )
+        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch + n_skip, num_out_ch, kernel_size=3)
+
         self.conv1x1_skip = torch.nn.Sequential(
             torch.nn.Conv2d(skip_4x_ch, n_skip, kernel_size=1),
             torch.nn.BatchNorm2d(n_skip),
@@ -144,14 +141,14 @@ class DecoderDeeplabV3p(torch.nn.Module):
         """
         # TODO: Implement a proper decoder with skip connections instead of the following; keep returned
         #       tensors in the same order and of the same shape.
-        features_bottleneck_upscaled = F.interpolate(
-            features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=True
+        features_bottleneck_4x = F.interpolate(
+            features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
         )
         features_skip_4x_reduced = self.conv1x1_skip(features_skip_4x)
-        feature_cat = torch.cat([features_bottleneck_upscaled, features_skip_4x_reduced], dim=1)
-        predictions_4x = self.features_to_predictions(feature_cat)
-        predictions = F.interpolate(predictions_4x, scale_factor=4, mode='bilinear', align_corners=True)
-        return predictions, predictions_4x
+        feature_cat = torch.cat([features_bottleneck_4x, features_skip_4x_reduced], dim=1)
+        predictions = self.features_to_predictions(feature_cat)
+        predictions_4x = F.interpolate(predictions, scale_factor=4, mode='bilinear', align_corners=False)
+        return predictions_4x, features_bottleneck_4x
 
 
 class ASPPpart(torch.nn.Sequential):
@@ -187,7 +184,7 @@ class ASPP(torch.nn.Module):
         self.avg_pool.kernel_size = x.shape[2:]
         global_feat = self.avg_pool(x)
         global_feat = self.conv1x1_global(global_feat)
-        global_feat = F.interpolate(global_feat, size=x.shape[2:], mode='bilinear', align_corners=True)
+        global_feat = F.interpolate(global_feat, size=x.shape[2:], mode='bilinear', align_corners=False)
 
         feature_cat = torch.cat([conv1x1, conv3x3_1, conv3x3_2, conv3x3_3, global_feat], dim=1)
         conv_cat = self.conv_final(feature_cat)
