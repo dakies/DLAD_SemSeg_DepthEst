@@ -24,12 +24,13 @@ cd /home/ubuntu/code/
 python -m mtl.scripts.train \
   --log_dir /home/ubuntu/results/ \
   --dataset_root /home/ubuntu/miniscapes/ \
-  --name encoder_decoder_unaligned \
+  --name branched \
   --optimizer adam \
   --optimizer_lr 0.00001 \
   --batch_size 8 \
   --num_epochs 32 \
-  --resume s3://balthesarbucket/G28_0424-0944_encoder_decoder_unaligned_e3ab8/
+  --model_name branched \
+  --resume s3://balthesarbucket/G28_0426-2155_branched_37754/
 
 # If you want to run multiple experiments after each other, just call the training script multiple times.
 # Don't forget to check if the AWS timeout in aws_start_instances.py is still sufficient.
