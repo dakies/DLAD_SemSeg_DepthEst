@@ -36,6 +36,7 @@ class ModelDeepLabV3PlusBranched(torch.nn.Module):
         lowest_scale = max(features.keys())
 
         features_lowest = features[lowest_scale]
+
         # Semseg
         features_semseg = self.aspp_semseg(features_lowest)
         predictions_4x_semseg, _ = self.decoder_semseg(features_semseg, features[4])

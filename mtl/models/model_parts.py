@@ -121,16 +121,26 @@ class Encoder(torch.nn.Module):
 class DecoderDeeplabV3p(torch.nn.Module):
     def __init__(self, bottleneck_ch, skip_4x_ch, num_out_ch):
         super(DecoderDeeplabV3p, self).__init__()
-
         # TODO: Implement a proper decoder with skip connections instead of the following
+        # self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=1, stride=1)
+
         n_skip = 48
-        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch + n_skip, num_out_ch, kernel_size=3)
 
         self.conv1x1_skip = torch.nn.Sequential(
             torch.nn.Conv2d(skip_4x_ch, n_skip, kernel_size=1),
             torch.nn.BatchNorm2d(n_skip),
             torch.nn.ReLU()
         )
+
+        self.conv3x3_final = torch.nn.Sequential(
+            torch.nn.Conv2d(bottleneck_ch + n_skip, bottleneck_ch, kernel_size=3, stride=1, padding=1,
+                            dilation=1, bias=False),
+            torch.nn.BatchNorm2d(bottleneck_ch),
+            torch.nn.ReLU()
+        )
+
+        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=3)
+
 
     def forward(self, features_bottleneck, features_skip_4x):
         """
@@ -141,14 +151,21 @@ class DecoderDeeplabV3p(torch.nn.Module):
         """
         # TODO: Implement a proper decoder with skip connections instead of the following; keep returned
         #       tensors in the same order and of the same shape.
+        # features_4x = F.interpolate(
+        #     features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
+        # )
+        # predictions_4x = self.features_to_predictions(features_4x)
+        # return predictions_4x, features_4x
+
         features_bottleneck_4x = F.interpolate(
             features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
         )
         features_skip_4x_reduced = self.conv1x1_skip(features_skip_4x)
         feature_cat = torch.cat([features_bottleneck_4x, features_skip_4x_reduced], dim=1)
+        feature_cat = self.conv3x3_final(feature_cat)
         predictions = self.features_to_predictions(feature_cat)
-        predictions_4x = F.interpolate(predictions, scale_factor=4, mode='bilinear', align_corners=False)
-        return predictions_4x, features_bottleneck_4x
+        # predictions get interpolated in deeplab_v3
+        return predictions, features_bottleneck_4x
 
 
 class ASPPpart(torch.nn.Sequential):
@@ -164,6 +181,8 @@ class ASPP(torch.nn.Module):
     def __init__(self, in_channels, out_channels, rates=(3, 6, 9)):
         super().__init__()
         # TODO: Implement ASPP properly instead of the following
+        # self.conv_out = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
+
         self.conv_1 = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
         self.conv_2 = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[0], dilation=rates[0])
         self.conv_3 = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[1], dilation=rates[1])
@@ -176,6 +195,9 @@ class ASPP(torch.nn.Module):
 
     def forward(self, x):
         # TODO: Implement ASPP properly instead of the following
+        # out = self.conv_out(x)
+        # return out
+
         conv1x1 = self.conv_1(x)
         conv3x3_1 = self.conv_2(x)
         conv3x3_2 = self.conv_3(x)
