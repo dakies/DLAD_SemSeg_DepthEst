@@ -20,10 +20,10 @@ class ModelDeepLabV3PlusBranched(torch.nn.Module):
         ch_out_encoder_bottleneck, ch_out_encoder_4x = get_encoder_channel_counts(cfg.model_encoder_name)
 
         self.aspp_semseg = ASPP(ch_out_encoder_bottleneck, 256)
-        self.decoder_semseg = DecoderDeeplabV3p(256, ch_out_encoder_4x, ch_out)
+        self.decoder_semseg = DecoderDeeplabV3p(256, ch_out_encoder_4x, ch_out-1)
 
         self.aspp_depth = ASPP(ch_out_encoder_bottleneck, 256)
-        self.decoder_depth = DecoderDeeplabV3p(256, ch_out_encoder_4x, ch_out)
+        self.decoder_depth = DecoderDeeplabV3p(256, ch_out_encoder_4x, 1)
 
     def forward(self, x):
         input_resolution = (x.shape[2], x.shape[3])

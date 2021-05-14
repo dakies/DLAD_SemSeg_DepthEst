@@ -24,15 +24,16 @@ cd /home/ubuntu/code/
 python -m mtl.scripts.train \
   --log_dir /home/ubuntu/results/ \
   --dataset_root /home/ubuntu/miniscapes/ \
-  --name task1_3_2conv \
+  --name task2_branched_chn \
   --optimizer adam \
   --optimizer_lr 0.0001 \
   --batch_size 8 \
   --num_epochs 32 \
   --loss_weight_semseg 0.6 \
   --loss_weight_depth 0.4 \
+  --model_name branched \
   # --resume s3://balthesarbucket/G28_0510-1951_task2_9f0fb/
-  # --model_name branched\
+
 
 
 # If you want to run multiple experiments after each other, just call the training script multiple times.

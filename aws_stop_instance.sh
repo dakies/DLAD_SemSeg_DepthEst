@@ -1,2 +1,2 @@
 #!/bin/bash
-aws ec2 terminate-instances --instance-ids "$1"
+aws ec2 terminate-instances --instance-id
