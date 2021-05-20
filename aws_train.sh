@@ -24,15 +24,15 @@ cd /home/ubuntu/code/
 python -m mtl.scripts.train \
   --log_dir /home/ubuntu/results/ \
   --dataset_root /home/ubuntu/miniscapes/ \
-  --name task2_branched_chn \
+  --name task2_attention \
   --optimizer adam \
   --optimizer_lr 0.0001 \
   --batch_size 8 \
   --num_epochs 32 \
   --loss_weight_semseg 0.6 \
   --loss_weight_depth 0.4 \
-  --model_name branched \
-  # --resume s3://balthesarbucket/G28_0510-1951_task2_9f0fb/
+  --model_name attention \
+  --resume s3://balthesarbucket/G28_0518-2032_task2_attention_e56fa/
 
 
 

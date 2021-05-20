@@ -121,9 +121,6 @@ class Encoder(torch.nn.Module):
 class DecoderDeeplabV3p(torch.nn.Module):
     def __init__(self, bottleneck_ch, skip_4x_ch, num_out_ch):
         super(DecoderDeeplabV3p, self).__init__()
-        # TODO: Implement a proper decoder with skip connections instead of the following
-        # self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=1, stride=1)
-
         n_skip = 48
 
         self.conv1x1_skip = torch.nn.Sequential(
@@ -141,7 +138,6 @@ class DecoderDeeplabV3p(torch.nn.Module):
 
         self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=3)
 
-
     def forward(self, features_bottleneck, features_skip_4x):
         """
         DeepLabV3+ style decoder
@@ -149,13 +145,6 @@ class DecoderDeeplabV3p(torch.nn.Module):
         :param features_skip_4x: features of encoder of scale == 4 Encoder
         :return: features with 256 channels and the final tensor of predictions
         """
-        # TODO: Implement a proper decoder with skip connections instead of the following; keep returned
-        #       tensors in the same order and of the same shape.
-        # features_4x = F.interpolate(
-        #     features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
-        # )
-        # predictions_4x = self.features_to_predictions(features_4x)
-        # return predictions_4x, features_4x
 
         features_bottleneck_4x = F.interpolate(
             features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
@@ -163,8 +152,7 @@ class DecoderDeeplabV3p(torch.nn.Module):
         features_skip_4x_reduced = self.conv1x1_skip(features_skip_4x)
         feature_cat = torch.cat([features_bottleneck_4x, features_skip_4x_reduced], dim=1)
         feature_cat = self.conv3x3_final(feature_cat)
-        predictions = self.features_to_predictions(feature_cat)
-        # predictions get interpolated in deeplab_v3
+        predictions = self.features_to_predictions(feature_cat) # predictions get interpolated in model_deeplab_v3
         return predictions, features_bottleneck_4x
 
 
@@ -180,8 +168,6 @@ class ASPPpart(torch.nn.Sequential):
 class ASPP(torch.nn.Module):
     def __init__(self, in_channels, out_channels, rates=(3, 6, 9)):
         super().__init__()
-        # TODO: Implement ASPP properly instead of the following
-        # self.conv_out = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
 
         self.conv_1 = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
         self.conv_2 = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[0], dilation=rates[0])
@@ -194,10 +180,6 @@ class ASPP(torch.nn.Module):
         self.conv_final = ASPPpart(out_channels * 5, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
 
     def forward(self, x):
-        # TODO: Implement ASPP properly instead of the following
-        # out = self.conv_out(x)
-        # return out
-
         conv1x1 = self.conv_1(x)
         conv3x3_1 = self.conv_2(x)
         conv3x3_2 = self.conv_3(x)
@@ -210,7 +192,6 @@ class ASPP(torch.nn.Module):
 
         feature_cat = torch.cat([conv1x1, conv3x3_1, conv3x3_2, conv3x3_3, global_feat], dim=1)
         conv_cat = self.conv_final(feature_cat)
-
         return conv_cat
 
 
@@ -247,3 +228,45 @@ class SqueezeAndExcitation(torch.nn.Module):
         squeezed = torch.mean(x, dim=(2, 3)).reshape(N, C)
         squeezed = self.transform(squeezed).reshape(N, C, 1, 1)
         return x * squeezed
+
+
+class DecoderDistillation(torch.nn.Module):
+    def __init__(self, in_channels, num_out_ch):
+        super(DecoderDistillation, self).__init__()
+
+        self.conv3x3_final1 = torch.nn.Sequential(
+            torch.nn.Conv2d(in_channels, in_channels // 2, kernel_size=3, stride=1, padding=1, dilation=1,
+                            bias=False),
+            torch.nn.BatchNorm2d(in_channels // 2),
+            torch.nn.ReLU()
+        )
+
+        self.conv3x3_final2 = torch.nn.Sequential(
+            torch.nn.Conv2d(in_channels // 2, in_channels // 4, kernel_size=3, stride=1, padding=1, dilation=1,
+                            bias=False),
+            torch.nn.BatchNorm2d(in_channels // 4),
+            torch.nn.ReLU()
+        )
+
+        self.conv3x3_final3 = torch.nn.Conv2d(in_channels // 4, num_out_ch, kernel_size=3, stride=1, padding=1,
+                                              dilation=1,
+                                              bias=False)
+
+    def forward(self, features_low, features_sa):
+        """
+        """
+        all_features = features_low + features_sa
+        all_features = self.conv3x3_final1(all_features)
+        target_shape = (all_features.shape[2] * 2, all_features.shape[3] * 2)
+        all_features = F.interpolate(
+            all_features, size=target_shape, mode='bilinear', align_corners=False
+        )
+
+        all_features = self.conv3x3_final2(all_features)
+        target_shape = (all_features.shape[2] * 2, all_features.shape[3] * 2)
+        all_features = F.interpolate(
+            all_features, size=target_shape, mode='bilinear', align_corners=False
+        )
+
+        all_features = self.conv3x3_final3(all_features)
+        return all_features
